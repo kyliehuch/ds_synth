@@ -1,0 +1,6 @@
+Andie	Ryan		Polo			37
+Julia	Withers	Basketball	1
+Jones	Fred		Baseball		22
+Grace	Hopper	Wrestling		9
+Sam		Smith 	Basketball	43
+Ron		Swanson	Wrestling		13
