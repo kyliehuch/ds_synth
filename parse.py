@@ -42,14 +42,14 @@ with open(f_name) as f:
         data[i] = [x.strip() for x in line.split()]
 
 # Identify target data structure(s) --> ID nesting structure as well (?)
-''' Formating Options:
-Polo[37] = 'Ryan, Andie'        ==> dictionary
-Polo = ['Ryan, Andie, 37']      ==> list
-Polo = {'Ryan, Andie, 37'}      ==> set
 
-* Initially not allowing nested data structures
-* Code gerated to group target data structures into a dictionary named 'data_structs' with data structures' names as keys and data structure objects as values
-'''
+# Formating Options:
+# Polo[37] = 'Ryan, Andie'        ==> dictionary
+# Polo = ['Ryan, Andie, 37']      ==> list
+# Polo = {'Ryan, Andie, 37'}      ==> set
+
+# * Initially not allowing nested data structures
+# * Code gerated to group target data structures into a dictionary named 'data_structs' with data structures' names as keys and data structure objects as values
 
 target_ds = ''
 for i,c in enumerate(output_ex):
@@ -83,12 +83,15 @@ print('Running Trinity to generate formating code...')
 synth_output = "dict(@param0[2], @param0[3], concat(concat(@param0[1], get_delimiter(,)), @param0[0]))"
 
 
-# Dictionary data structure example (from proposal):
-print('Formating generated generated code for application...')
+# Plug synth output into appropreate application logic block
+print('Generating formating code...')
 
 synth_output = synth_output.replace('@param0', 'line')
 
+# resolve concat commands
+
 if target_ds == 'dict':
+    # synthesizer output format: dict(name, key, value)
     dict_args = synth_output[5:-1]
     name, key, val = parse_synth_dict(dict_args)
     try_str = f"{name}[{key}] = {val}"
@@ -102,4 +105,18 @@ if target_ds == 'dict':
             data_structs.append({name})"""
 
     out = univ_out + dict_out
+
     print(f'Generated formatting code:\n{out}')
+elif target_ds == 'list':
+    # synthesizer output format: list(name, entry)
+    list_args = synth_output[5:-1]
+    name, entry = parse_synth_l_s(list_args)
+
+elif target_ds == 'set':
+    # synthesizer output format: set(name, entry)
+    set_args = synth_output[4:-1]
+    name, entry = parse_synth_l_s(set_args)
+
+else:
+    print(f"Unsuported target data structure {target_ds}")
+    exit(1)
