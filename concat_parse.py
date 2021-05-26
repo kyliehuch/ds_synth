@@ -1,3 +1,5 @@
+# test file for developing string parsing methods
+
 
 def parse_delim(synth_str):
     while 'get_delimiter' in synth_str:
