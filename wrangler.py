@@ -22,6 +22,10 @@ with open(f_name) as f:
 
 input_ex = data[0]
 
+print(f"Input example: {input_ex}")
+print(f'Output example: "{output_ex}"')
+
+
 
 # –––––––––––––––––– Identify Target Data Structure(s) –––––––––––––––––
 
@@ -130,6 +134,8 @@ print('Running Trinity to generate formating code...')
 
 # Hardcoded output for dev & debugging purposes
 synth_output = "dict(@param0[2], @param0[3], concat(concat(@param0[1], get_delimiter(,)), @param0[0]))"
+
+print(f"Solution found by Trinity: {synth_output}")
 
 
 # ––––––––––––––––––– Application Logic Synthesis ––––––––––––––––––––
