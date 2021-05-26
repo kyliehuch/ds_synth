@@ -2,7 +2,7 @@
 import sys
 
 # Output Example Formating Options:
-# Polo[37] = 'Ryan, Andie'        ==> dictionary
+# Polo[37] = 'Ryan, Andie, 37'        ==> dictionary
 # Polo = ['Ryan, Andie, 37']      ==> list
 # Polo = {'Ryan, Andie, 37'}      ==> set
 
@@ -24,7 +24,9 @@ input_ex = data[0]
 
 
 # –––––––––––––––––– Identify Target Data Structure(s) –––––––––––––––––
+
 # NEXT STEPS: ID nested data structures as well
+
 target_ds = ''
 for i,c in enumerate(output_ex):
     if c == '[':
@@ -71,22 +73,60 @@ def parse_synth_dict(arg_str):
     return n, k, v
 
 def parse_synth_l_s(arg_str):
-    ''' Translates output of Trinity to python for dict data structs. Acceps arguments to lsit() or set() funcs, returns struct name, and val args '''
+    ''' Translates output of Trinity to python for list and set data structs. Acceps arguments to lsit() or set() funcs, returns struct name, and val args '''
+
+    # TODO: implement
+
     pass
 
-def parse_concat(arg_str):
-    ''' translates output of Trinity to python for dict data structs acceps arguments to lsit() or set() funcs, returns struct name, and val args '''
-    pass
+def parse_delim(synth_str):
+    ''' Translates output of Trinity to python for string get_delim() method. Acceps string, splices get_delim() and re-formats string accordingly '''
+    while 'get_delimiter' in synth_str:
+        si = synth_str.index('get_delimiter')
+        ei = si + + len('get_delimiter(')
+        synth_str = synth_str[0:si] + "'" +  synth_str[ei] + "'" + synth_str[ei+2:]
+    return synth_str
+
+def parse_concat(synth_str):
+    ''' Translates output of Trinity to python for string concat() method. Acceps string, splices concat() and re-formats string accordingly '''
+    while 'concat' in synth_str:
+        si = synth_str.index('concat')
+        ei = si + + len('concat(')
+        start_str = synth_str[:si]
+        end_str = synth_str[ei:]
+        delim_idx = 0
+        close_idx = 0
+        open_par_ct = 0
+        for i,c in enumerate(end_str):
+            if c == '(':
+                open_par_ct += 1
+            elif c == ')':
+                if open_par_ct != 0:
+                    open_par_ct -= 1
+                else:
+                    close_idx = i
+                    break
+            elif c == ',':
+                if (open_par_ct == 0) & (delim_idx == 0):
+                    delim_idx = i
+        c_arg0 = end_str[:delim_idx].strip()
+        c_arg1 = end_str[delim_idx+1:close_idx].strip()
+        rest = end_str[close_idx+1:]
+        end_str = c_arg0 + " + " + c_arg1 + rest
+        synth_str = start_str + end_str
+    return synth_str
 
 
 # –––––––––––––––––––––––– DSL Definitions –––––––––––––––––––––––––
 print(f'Selecting DSL subset for type {target_ds}...')
 
-
+# TODO: define enum_funcs for DSL methods (separate class for each ds)
 
 
 # –––––––––––––––––– Program Synthesis with Trinity –––––––––––––––––
 print('Running Trinity to generate formating code...')
+
+# TODO: write main trinity synthesizer
 
 # Hardcoded output for dev & debugging purposes
 synth_output = "dict(@param0[2], @param0[3], concat(concat(@param0[1], get_delimiter(,)), @param0[0]))"
@@ -98,15 +138,17 @@ print('Generating data structure-specific application code...')
 # Translate Rosette Trinity output to python
 synth_output = synth_output.replace('@param0', 'line')
 
-# resolve concat commands
-# TODO
+# resolve get_delim commands
+synth_output = parse_delim(synth_output)
+
+# resolve concat commands with parse_concat(concat_args)
+synth_output = parse_concat(synth_output)
 
 # Code to import raw data from .txt file and format it into a 2D list
 # Appended to synthesized code for all data structures
-synth_prog = """import sys
+synth_prog = f"""import sys
 
-f_name = sys.argv[1]
-with open(f_name) as f:
+with open('{f_name}') as f:
     data = f.readlines()
     for i, line in enumerate(data):
         data[i] = [x.strip() for x in line.split()]
@@ -121,6 +163,7 @@ if target_ds == 'dict':
     try_str = f"{name}[{key}] = {val}"
     exc_str = name + " = {" + key + ":" + val + "}"
 
+    # Partial program for application of logic to dictionaries
     dict_out = f"""for line in data:
         try:
             {try_str}
@@ -128,19 +171,29 @@ if target_ds == 'dict':
             {exc_str}
             data_structs.append({name})"""
 
-    out = univ_out + dict_out
+    # Append application logic to synthesized code
+    synth_prog += dict_out
 
-    print(f'Generated formatting code:\n{out}')
 elif target_ds == 'list':
     # synthesizer output format: list(name, entry)
     list_args = synth_output[5:-1]
     name, entry = parse_synth_l_s(list_args)
+
+    # TODO: write adaptation logic
 
 elif target_ds == 'set':
     # synthesizer output format: set(name, entry)
     set_args = synth_output[4:-1]
     name, entry = parse_synth_l_s(set_args)
 
+    # TODO: write adaptation logic
+
 else:
     print(f"Unsuported target data structure {target_ds}")
     exit(1)
+
+
+# ––––––––––––––––––– Output Python File Creation ––––––––––––––––––––
+
+with open('format.py','w') as out_file:
+    out_file.write(synth_prog)
