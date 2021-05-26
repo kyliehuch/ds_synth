@@ -2,7 +2,7 @@
 import sys
 
 # Output Example Formating Options:
-# Polo[37] = 'Ryan, Andie, 37'        ==> dictionary
+# Polo[37] = 'Ryan, Andie'        ==> dictionary
 # Polo = ['Ryan, Andie, 37']      ==> list
 # Polo = {'Ryan, Andie, 37'}      ==> set
 
@@ -153,23 +153,26 @@ with open('{f_name}') as f:
     for i, line in enumerate(data):
         data[i] = [x.strip() for x in line.split()]
 
-data_structs = []\n"""
+data_structs = {{}}\n"""
 
 # Select data structure-specific adaptation logic
 if target_ds == 'dict':
     # synthesizer output format: dict(name, key, value)
     dict_args = synth_output[5:-1]
     name, key, val = parse_synth_dict(dict_args)
-    try_str = f"{name}[{key}] = {val}"
-    exc_str = name + " = {" + key + ":" + val + "}"
+    if_str = f"data_structs[{name}][{key}] = {val}"
+    else_str = f"data_structs[{name}] = {{ {key}:{val} }}"
 
     # Partial program for application of logic to dictionaries
-    dict_out = f"""for line in data:
-        try:
-            {try_str}
-        except Exception:
-            {exc_str}
-            data_structs.append({name})"""
+    dict_out = f"""
+for line in data:
+    if line[2] in data_structs.keys():
+        {if_str}
+    else:
+        {else_str}
+
+for i in data_structs.keys():
+    print(i, "=", data_structs[i])\n"""
 
     # Append application logic to synthesized code
     synth_prog += dict_out
@@ -197,3 +200,5 @@ else:
 
 with open('format.py','w') as out_file:
     out_file.write(synth_prog)
+
+print("Done!\nData formatting code written to format.py")
