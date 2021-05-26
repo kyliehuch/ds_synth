@@ -1,0 +1,15 @@
+enum RawDelimiter {
+    "_", "-", ",", " "
+}
+
+value Empty;
+value Str;
+value Dict;
+
+program struct(List) -> Str, Dict;
+
+func empty: Empty -> Empty;
+
+func get_delimiter: Str -> RawDelimiter;
+func concat: Str -> Str, Str;
+func dict: Str, Dict -> Str, Str, Str;
