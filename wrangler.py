@@ -78,10 +78,20 @@ def parse_synth_dict(arg_str):
 
 def parse_synth_l_s(arg_str):
     ''' Translates output of Trinity to python for list and set data structs. Acceps arguments to lsit() or set() funcs, returns struct name, and val args '''
-
-    # TODO: implement
-
-    pass
+    delim_idx = 0
+    open_par_ct = 0
+    for i,c in enumerate(arg_str):
+        if c == '(':
+            open_par_ct += 1
+        elif c == ')':
+            open_par_ct -= 1
+        elif c == ',':
+            if open_par_ct == 0:
+                delim_idx = i
+                break
+    n = arg_str[:delim_idx].strip()
+    v = arg_str[delim_idx+1:].strip()
+    return n, v
 
 def parse_delim(synth_str):
     ''' Translates output of Trinity to python for string get_delim() method. Acceps string, splices get_delim() and re-formats string accordingly '''
@@ -144,12 +154,6 @@ print('Generating data structure-specific application code...')
 # Translate Rosette Trinity output to python
 synth_output = synth_output.replace('@param0', 'line')
 
-# resolve get_delim commands
-synth_output = parse_delim(synth_output)
-
-# resolve concat commands with parse_concat(concat_args)
-synth_output = parse_concat(synth_output)
-
 # Code to import raw data from .txt file and format it into a 2D list
 # Appended to synthesized code for all data structures
 synth_prog = f"""import sys
@@ -166,6 +170,9 @@ if target_ds == 'dict':
     # synthesizer output format: dict(name, key, value)
     dict_args = synth_output[5:-1]
     name, key, val = parse_synth_dict(dict_args)
+    name = parse_concat(parse_delim(name))
+    key = parse_concat(parse_delim(key))
+    val = parse_concat(parse_delim(val))
     if_str = f"data_structs[{name}][{key}] = {val}"
     else_str = f"data_structs[{name}] = {{ {key}:{val} }}"
 
@@ -186,14 +193,18 @@ for i in data_structs.keys():
 elif target_ds == 'list':
     # synthesizer output format: list(name, entry)
     list_args = synth_output[5:-1]
-    name, entry = parse_synth_l_s(list_args)
+    name, val = parse_synth_l_s(list_args)
+    name = parse_concat(parse_delim(name))
+    val = parse_concat(parse_delim(val))
 
     # TODO: write adaptation logic
 
 elif target_ds == 'set':
     # synthesizer output format: set(name, entry)
     set_args = synth_output[4:-1]
-    name, entry = parse_synth_l_s(set_args)
+    name, val = parse_synth_l_s(set_args)
+    name = parse_concat(parse_delim(name))
+    val = parse_concat(parse_delim(val))
 
     # TODO: write adaptation logic
 
