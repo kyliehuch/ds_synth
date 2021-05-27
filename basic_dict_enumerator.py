@@ -19,10 +19,7 @@ class DictInterpreter(PostOrderInterpreter):
 
     # return name, struct tuples for container data types
     def eval_dict(self, node, args):
-        d_name = args[0]
-        d_key = args[1]
-        d_val = args[2]
-        return (d_name, {d_key:d_val})
+        return (args[0], {args[1]:args[2]})
 
 
 def main():
@@ -32,7 +29,8 @@ def main():
 
 	logger.info('Building synthesizer...')
 	synthesizer = Synthesizer(
-		enumerator=SmtEnumerator(spec, depth=3, loc=5),
+        # dict(@param0[2], @param0[3], concat(concat(@param0[1], get_delimiter(,)), @param0[0])) --> depth=5, loc=4
+		enumerator=SmtEnumerator(spec, depth=5, loc=4),
 		decider=ExampleConstraintDecider(
 			spec=spec,
 			interpreter=DictInterpreter(),

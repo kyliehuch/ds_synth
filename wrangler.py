@@ -121,13 +121,13 @@ def parse_concat(synth_str):
     return synth_str
 
 
-# –––––––––––––––––––––––– DSL Definitions –––––––––––––––––––––––––
+# ––––––––––––––––– DSL Enumerator Class Definitions ––––––––––––––––
 print(f'Selecting DSL subset for type {target_ds}...')
 
 # TODO: define enum_funcs for DSL methods (separate class for each ds)
 
 
-# –––––––––––––––––– Program Synthesis with Trinity –––––––––––––––––
+# ––––––––––––––– Trinity Program Synthesis Functions  –––––––––––––––––
 print('Running Trinity to generate formating code...')
 
 # TODO: write main trinity synthesizer

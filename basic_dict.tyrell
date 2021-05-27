@@ -7,8 +7,7 @@ value Str;
 value List;
 value Dict;
 
-program struct(List) -> Str, Dict;
-
+program dict(List) -> Str, Dict;
 func empty: Empty -> Empty;
 
 func get_delimiter: Str -> RawDelimiter;

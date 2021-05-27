@@ -1,5 +1,8 @@
 # test file for developing string parsing methods
 
+# @param0 = ['Andie', 'Ryan', 'Polo', '37']
+# Output = Polo[37] = 'Ryan, Andie'
+synth_output = "dict(@param0[2], @param0[3], concat(concat(@param0[1], get_delimiter(,)), @param0[0]))"
 
 def parse_delim(synth_str):
     while 'get_delimiter' in synth_str:
@@ -37,8 +40,6 @@ def parse_concat(synth_str):
         synth_str = start_str + end_str
     return synth_str
 
-
-synth_output = "dict(@param0[2], @param0[3], concat(concat(@param0[1], get_delimiter(,)), @param0[0]))"
 
 # Translate Rosette Trinity output to python
 synth_output = synth_output.replace('@param0', 'line')

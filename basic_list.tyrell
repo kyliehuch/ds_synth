@@ -6,10 +6,9 @@ value Empty;
 value Str;
 value List;
 
-program struct(List) -> Str, List;
-
+program list(List) -> Str, List;
 func empty: Empty -> Empty;
 
 func get_delimiter: Str -> RawDelimiter;
 func concat: Str -> Str, Str;
-func list: Str, List -> Str, List;
+func list: Str, List -> Str, Str;

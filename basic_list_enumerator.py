@@ -19,6 +19,35 @@ class ListInterpreter(PostOrderInterpreter):
 
     # return name, struct tuples for container data types
     def eval_list(self, node, args):
-        l_name = args[0]
-        l_vals = args[1]
-        return l_name, l_vals
+        return args[0], list(args[1])
+
+
+def main():
+	logger.info('Parsing Spec...')
+	spec = S.parse_file('basic_list.tyrell')
+	logger.info('Parsing succeeded')
+
+	logger.info('Building synthesizer...')
+	synthesizer = Synthesizer(
+        # list(@param0[2], concat(concat(concat(@param0[1], get_delimiter(,)), concat(@param0[0], get_delimiter(,))), @param0[3])) --> depth=6, loc=7
+		enumerator=SmtEnumerator(spec, depth=6, loc=7),
+		decider=ExampleConstraintDecider(
+			spec=spec,
+			interpreter=ListInterpreter(),
+			examples=[
+				Example(input=[ ['Andie', 'Ryan', 'Polo', '37'] ], output=('Polo', ['Ryan,Andie,37'])),
+			],
+			# equal_output=eq_deepcoder
+		)
+	)
+	logger.info('Synthesizing programs...')
+
+	prog = synthesizer.synthesize()
+	if prog is not None:
+		logger.info('Solution found: {}'.format(prog))
+	else:
+		logger.info('Solution not found!')
+
+if __name__ == '__main__':
+	logger.setLevel('DEBUG')
+	main()
