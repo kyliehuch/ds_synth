@@ -140,10 +140,16 @@ print(f'Selecting DSL subset for type {target_ds}...')
 # ––––––––––––––– Trinity Program Synthesis Functions  –––––––––––––––––
 print('Running Trinity to generate formating code...')
 
-# TODO: write main trinity synthesizer
+# TODO: write main trinity synthesizer programs
 
 # Hardcoded output for dev & debugging purposes
-synth_output = "dict(@param0[2], @param0[3], concat(concat(@param0[1], get_delimiter(,)), @param0[0]))"
+synth_output = ""
+if target_ds == 'dict':
+    synth_output = "dict(@param0[2], @param0[3], concat(concat(@param0[1], get_delimiter(,)), @param0[0]))"
+elif target_ds == 'list':
+    synth_output = "list(@param0[2], concat(concat(concat(@param0[1], get_delimiter(,)), concat(@param0[0], get_delimiter(,))), @param0[3]))"
+else:
+    synth_output = "set(@param0[2], concat(concat(concat(@param0[1], get_delimiter(,)), concat(@param0[0], get_delimiter(,))), @param0[3]))"
 
 print(f"Solution found by Trinity: {synth_output}")
 
@@ -179,7 +185,7 @@ if target_ds == 'dict':
     # Partial program for application of logic to dictionaries
     dict_out = f"""
 for line in data:
-    if line[2] in data_structs.keys():
+    if {name} in data_structs.keys():
         {if_str}
     else:
         {else_str}
@@ -196,8 +202,22 @@ elif target_ds == 'list':
     name, val = parse_synth_l_s(list_args)
     name = parse_concat(parse_delim(name))
     val = parse_concat(parse_delim(val))
+    if_str = f"data_structs[{name}].append({val})"
+    else_str = f"data_structs[{name}] = [{val}]"
 
-    # TODO: write adaptation logic
+    # Partial program for application of logic to lists
+    list_out = f"""
+for line in data:
+    if {name} in data_structs.keys():
+        {if_str}
+    else:
+        {else_str}
+
+for i in data_structs.keys():
+    print(i, "=", data_structs[i])\n"""
+
+    # Append application logic to synthesized code
+    synth_prog += list_out
 
 elif target_ds == 'set':
     # synthesizer output format: set(name, entry)
@@ -205,8 +225,22 @@ elif target_ds == 'set':
     name, val = parse_synth_l_s(set_args)
     name = parse_concat(parse_delim(name))
     val = parse_concat(parse_delim(val))
+    if_str = f"data_structs[{name}].add({val})"
+    else_str = f"data_structs[{name}] = {{ {val} }}"
 
-    # TODO: write adaptation logic
+    # Partial program for application of logic to lists
+    set_out = f"""
+for line in data:
+    if {name} in data_structs.keys():
+        {if_str}
+    else:
+        {else_str}
+
+for i in data_structs.keys():
+    print(i, "=", data_structs[i])\n"""
+
+    # Append application logic to synthesized code
+    synth_prog += set_out
 
 else:
     print(f"Unsuported target data structure {target_ds}")
