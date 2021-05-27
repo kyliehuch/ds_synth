@@ -40,16 +40,16 @@ def parse_concat(synth_str):
         synth_str = start_str + end_str
     return synth_str
 
+if __name__ == "__main__":
+    # Translate Rosette Trinity output to python
+    synth_output = synth_output.replace('@param0', 'line')
 
-# Translate Rosette Trinity output to python
-synth_output = synth_output.replace('@param0', 'line')
+    print(synth_output)
 
-print(synth_output)
+    synth_output = parse_delim(synth_output)
 
-synth_output = parse_delim(synth_output)
+    print(synth_output)
 
-print(synth_output)
+    synth_output = parse_concat(synth_output)
 
-synth_output = parse_concat(synth_output)
-
-print(synth_output)
+    print(synth_output)
