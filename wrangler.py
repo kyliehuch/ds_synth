@@ -2,7 +2,7 @@
 
 import sys
 import random
-"""import tyrell.spec as S
+import tyrell.spec as S
 from tyrell.interpreter import PostOrderInterpreter
 from tyrell.enumerator import SmtEnumerator
 from tyrell.decider import Example, ExampleConstraintDecider
@@ -10,7 +10,7 @@ from tyrell.synthesizer import Synthesizer
 from tyrell.logger import get_logger
 
 logger = get_logger('tyrell')
-logger.setLevel('DEBUG')"""
+logger.setLevel('DEBUG')
 
 # Usage: python wrangler.py raw_data_file.txt '1st row output example'
 
@@ -130,10 +130,8 @@ def parse_synth_l_s(arg_str):
     v = arg_str[delim_idx+1:].strip()
     return n, v
 
-def parse_delim(synth_str, num_params):
+def parse_delim(synth_str):
     ''' Translates output of Trinity to python for string get_delim() method. Acceps string, splices get_delim() and re-formats string accordingly '''
-    for i in range(num_params):
-        synth_str = synth_str.replace('@param'+str(i), 'line['+str(i)+']')
     while 'delim' in synth_str:
         si = synth_str.index('delim')
         ei = si + + len('delim(')
@@ -160,8 +158,9 @@ def parse_concat(synth_str):
                     close_idx = i
                     break
             elif c == ',':
-                if (open_par_ct == 0) & (delim_idx == 0):
-                    delim_idx = i
+                if not ((end_str[i-1] == "'") & (end_str[i+1] == "'")):
+                    if (open_par_ct == 0) & (delim_idx == 0):
+                        delim_idx = i
         c_arg0 = end_str[:delim_idx].strip()
         c_arg1 = end_str[delim_idx+1:close_idx].strip()
         rest = end_str[close_idx+1:]
@@ -195,20 +194,26 @@ def det_depth_loc(cat_str, input_ex):
     loc = None
     return depth, loc
 
+def translate_indicies(synth_str, input_ex, input_sub):
+    sub_idx = []
+    for v in input_sub:
+        sub_idx.append(input_ex.index(v))
+    for i, t in enumerate(sub_idx):
+        synth_str = synth_str.replace('@param'+str(i), 'line['+str(t)+']')
+    return synth_str
+
 
 # ––––––––––––––––– DSL Enumerator Class Definitions ––––––––––––––––
-"""class StrInterpreter(PostOrderInterpreter):
+class StrInterpreter(PostOrderInterpreter):
 
     def eval_delim(self, node, args):
         return args[0]
 
     def eval_concat(self, node, args):
         return args[0] + args[1]
-"""
 
 
 # ––––––––––––––– Trinity Program Synthesis Functions  –––––––––––––––––
-"""
 def synth_str(in_ex, out_ex, search_depth, search_loc):
     ''' Trinity synth prog for strings '''
     logger.info('Parsing Spec...')
@@ -234,14 +239,10 @@ def synth_str(in_ex, out_ex, search_depth, search_loc):
     else:
         logger.info('Solution not found!')
     return prog
-"""
 
 
 # ––––––––––––––––––– Application Logic Synthesis ––––––––––––––––––––
 print('Generating data structure-specific application code...')
-
-# Create .tyrell file for this example
-parse_file_generator(input_ex)
 
 # Code to import raw data from .txt file and format it into a 2D list
 # Appended to synthesized code for all data structures
@@ -259,24 +260,48 @@ if target_ds == 'dict':
     name, key, val = parse_out_dict(output_ex)
     if name not in input_ex:
         print("Synthesizing code to generate dictionary name field...")
-        depth, loc = det_depth_loc(name, input_ex)
-        name = synth_str(input_ex, name, depth, loc)
-        name = parse_concat(parse_delim(name, len(input_ex)))
+        input_sub = []
+        for i in input_ex:
+            if i in name:
+                input_sub.append(i)
+        # Create .tyrell file for this example
+        parse_file_generator(input_sub)
+        depth, loc = det_depth_loc(name, input_sub)
+        # Call Trinity to generate formating program
+        name = synth_str(input_sub, name, depth, loc)
+        name = translate_indicies(name, input_ex, input_sub)
+        name = parse_concat(parse_delim(name))
     else:
         name = 'line[' + str(input_ex.index(name)) + ']'
     if key not in input_ex:
         print("Synthesizing code to generate dictionary key field...")
-        depth, loc = det_depth_loc(key, input_ex)
-        key = synth_str(input_ex, key, depth, loc)
-        key = parse_concat(parse_delim(key, len(input_ex)))
+        input_sub = []
+        for i in input_ex:
+            if i in key:
+                input_sub.append(i)
+        # Create .tyrell file for this example
+        parse_file_generator(input_sub)
+        depth, loc = det_depth_loc(key, input_sub)
+        key = synth_str(input_sub, key, depth, loc)
+        key = translate_indicies(key, input_ex, input_sub)
+        key = parse_concat(parse_delim(key))
     else:
         key = 'line[' + str(input_ex.index(key)) + ']'
     if val not in input_ex:
         print("Synthesizing code to generate dictionary value field...")
-        #depth, loc = det_depth_loc(val, input_ex)
-        #val = synth_str(input_ex, val, depth, loc)
-        val = "concat(concat(@param1, delim(,)), @param0)"
-        val = parse_concat(parse_delim(val, len(input_ex)))
+        input_sub = []
+        for i in input_ex:
+            if i in val:
+                input_sub.append(i)
+        print(f"Input Example: {input_sub}\tOutput Example: {val}")
+        # Create .tyrell file for this example
+        parse_file_generator(input_sub)
+        #depth, loc = det_depth_loc(val, input_sub)
+        depth, loc = (4, 3)
+        val = str(synth_str(input_sub, val, depth, loc))
+        #val = "concat(concat(@param1, delim(,)), @param0)"
+        val = translate_indicies(val, input_ex, input_sub)
+        val = parse_concat(parse_delim(val))
     else:
         val = 'line[' + str(input_ex.index(val)) + ']'
 
@@ -301,16 +326,31 @@ elif target_ds == 'list':
     name, val = parse_out_list(output_ex)
     if name not in input_ex:
         print("Synthesizing code to generate list name field...")
-        depth, loc = det_depth_loc(name, input_ex)
-        name = synth_str(input_ex, name, depth, loc)
-        name = parse_concat(parse_delim(name, len(input_ex)))
+        input_sub = []
+        for i in input_ex:
+            if i in name:
+                input_sub.append(i)
+        # Create .tyrell file for this example
+        parse_file_generator(input_sub)
+        depth, loc = det_depth_loc(name, input_sub)
+        # Call Trinity to generate formating program
+        name = synth_str(input_sub, name, depth, loc)
+        name = translate_indicies(name, input_ex, input_sub)
+        name = parse_concat(parse_delim(name))
     else:
         name = 'line[' + str(input_ex.index(name)) + ']'
     if val not in input_ex:
         print("Synthesizing code to generate list value field...")
-        depth, loc = det_depth_loc(val, input_ex)
-        val = synth_str(input_ex, val, depth, loc)
-        val = parse_concat(parse_delim(val, len(input_ex)))
+        input_sub = []
+        for i in input_ex:
+            if i in val:
+                input_sub.append(i)
+        # Create .tyrell file for this example
+        parse_file_generator(input_sub)
+        depth, loc = det_depth_loc(val, input_sub)
+        val = synth_str(input_sub, val, depth, loc)
+        val = translate_indicies(val, input_ex, input_sub)
+        val = parse_concat(parse_delim(val))
     else:
         val = 'line[' + str(input_ex.index(val)) + ']'
 
@@ -335,16 +375,31 @@ elif target_ds == 'set':
     name, val = parse_out_set(output_ex)
     if name not in input_ex:
         print("Synthesizing code to generate set name field...")
-        depth, loc = det_depth_loc(name, input_ex)
-        name = synth_str(input_ex, name, depth, loc)
-        name = parse_concat(parse_delim(name, len(input_ex)))
+        input_sub = []
+        for i in input_ex:
+            if i in name:
+                input_sub.append(i)
+        # Create .tyrell file for this example
+        parse_file_generator(input_sub)
+        depth, loc = det_depth_loc(name, input_sub)
+        # Call Trinity to generate formating program
+        name = synth_str(input_sub, name, depth, loc)
+        name = translate_indicies(name, input_ex, input_sub)
+        name = parse_concat(parse_delim(name))
     else:
         name = 'line[' + str(input_ex.index(name)) + ']'
     if val not in input_ex:
         print("Synthesizing code to generate set value field...")
-        depth, loc = det_depth_loc(val, input_ex)
-        val = synth_str(input_ex, val, depth, loc)
-        val = parse_concat(parse_delim(val, len(input_ex)))
+        input_sub = []
+        for i in input_ex:
+            if i in val:
+                input_sub.append(i)
+        # Create .tyrell file for this example
+        parse_file_generator(input_sub)
+        depth, loc = det_depth_loc(val, input_sub)
+        val = synth_str(input_sub, val, depth, loc)
+        val = translate_indicies(val, input_ex, input_sub)
+        val = parse_concat(parse_delim(val))
     else:
         val = 'line[' + str(input_ex.index(val)) + ']'
 
