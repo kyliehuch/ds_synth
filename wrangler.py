@@ -1,5 +1,18 @@
-# Usage: python wrangler.py raw_data_file.txt '1st row output example'
+#!/usr/bin/env python
+
 import sys
+import random
+"""import tyrell.spec as S
+from tyrell.interpreter import PostOrderInterpreter
+from tyrell.enumerator import SmtEnumerator
+from tyrell.decider import Example, ExampleConstraintDecider
+from tyrell.synthesizer import Synthesizer
+from tyrell.logger import get_logger
+
+logger = get_logger('tyrell')
+logger.setLevel('DEBUG')"""
+
+# Usage: python wrangler.py raw_data_file.txt '1st row output example'
 
 # Output Example Formating Options:
 # Polo[37] = 'Ryan, Andie'        ==> dictionary
@@ -28,9 +41,6 @@ print(f'Output example: "{output_ex}"')
 
 
 # –––––––––––––––––– Identify Target Data Structure(s) –––––––––––––––––
-
-# NEXT STEPS: ID nested data structures as well
-
 target_ds = ''
 for i,c in enumerate(output_ex):
     if c == '[':
@@ -51,6 +61,33 @@ if target_ds == '':
     exit(1)
 else:
     print(f"Target data structure detected: {target_ds}")
+
+
+# –––––––––––––––––– Output Field Parse Functions –––––––––––––––––
+def parse_out_dict(out_ex):
+    bo = out_ex.index('[')
+    bc = out_ex.index(']')
+    e = out_ex.index('=')
+    n = out_ex[:bo].strip().strip("'").strip('"')
+    k = out_ex[bo+1:bc].strip().strip("'").strip('"')
+    v = out_ex[e+1:].strip().strip("'").strip('"')
+    return n, k, v
+
+def parse_out_list(out_ex):
+    e = out_ex.index('=')
+    bo = out_ex.index('[')
+    bc = out_ex.index(']')
+    n = out_ex[:e].strip().strip("'").strip('"')
+    v = out_ex[bo+1:bc].strip().strip("'").strip('"')
+    return n, v
+
+def parse_out_set(out_ex):
+    e = out_ex.index('=')
+    bo = out_ex.index('{')
+    bc = out_ex.index('}')
+    n = out_ex[:e].strip().strip("'").strip('"')
+    v = out_ex[bo+1:bc].strip().strip("'").strip('"')
+    return n, v
 
 
 # –––––––––––––––––– Trinity Output Parse Functions –––––––––––––––––
@@ -93,11 +130,13 @@ def parse_synth_l_s(arg_str):
     v = arg_str[delim_idx+1:].strip()
     return n, v
 
-def parse_delim(synth_str):
+def parse_delim(synth_str, num_params):
     ''' Translates output of Trinity to python for string get_delim() method. Acceps string, splices get_delim() and re-formats string accordingly '''
-    while 'get_delimiter' in synth_str:
-        si = synth_str.index('get_delimiter')
-        ei = si + + len('get_delimiter(')
+    for i in range(num_params):
+        synth_str = synth_str.replace('@param'+str(i), 'line['+str(i)+']')
+    while 'delim' in synth_str:
+        si = synth_str.index('delim')
+        ei = si + + len('delim(')
         synth_str = synth_str[0:si] + "'" +  synth_str[ei] + "'" + synth_str[ei+2:]
     return synth_str
 
@@ -131,34 +170,78 @@ def parse_concat(synth_str):
     return synth_str
 
 
-# ––––––––––––––––– DSL Enumerator Class Definitions ––––––––––––––––
-print(f'Selecting DSL subset for type {target_ds}...')
+# ––––––––––––––––– Synthesizer Helper Functions ––––––––––––––––
+def parse_file_generator(input_ex):
+    ''' Creates correctly formated .tyrell file for a given input example '''
+    in_f = "Str, "*(len(input_ex)-1) + "Str"
+    file_conts = f"""enum ConstStr {{
+  ",", " "
+}}
+value Empty;
+value Str;
 
-# TODO: define enum_funcs for DSL methods (separate class for each ds)
+program gen_str({in_f}) -> Str;
+func empty: Empty -> Empty;
+
+func delim: Str -> ConstStr;
+func concat: Str -> Str, Str;
+"""
+    with open('string.tyrell','w') as out_file:
+        out_file.write(file_conts)
+
+def det_depth_loc(cat_str, input_ex):
+    ''' Accepts target string and calcuates synthesizer depth and loc '''
+    depth = None
+    loc = None
+    return depth, loc
+
+
+# ––––––––––––––––– DSL Enumerator Class Definitions ––––––––––––––––
+"""class StrInterpreter(PostOrderInterpreter):
+
+    def eval_delim(self, node, args):
+        return args[0]
+
+    def eval_concat(self, node, args):
+        return args[0] + args[1]
+"""
 
 
 # ––––––––––––––– Trinity Program Synthesis Functions  –––––––––––––––––
-print('Running Trinity to generate formating code...')
+"""
+def synth_str(in_ex, out_ex, search_depth, search_loc):
+    ''' Trinity synth prog for strings '''
+    logger.info('Parsing Spec...')
+    spec = S.parse_file('string.tyrell')
+    logger.info('Parsing succeeded')
 
-# TODO: write main trinity synthesizer programs
+    logger.info('Building synthesizer...')
+    synthesizer = Synthesizer(
+        enumerator=SmtEnumerator(spec, depth=search_depth, loc=search_loc),
+        decider=ExampleConstraintDecider(
+            spec=spec,
+            interpreter=StrInterpreter(),
+            examples=[
+                Example(input=in_ex, output=out_ex),
+            ],
+        )
+    )
+    logger.info('Synthesizing programs...')
 
-# Hardcoded output for dev & debugging purposes
-synth_output = ""
-if target_ds == 'dict':
-    synth_output = "dict(@param0[2], @param0[3], concat(concat(@param0[1], get_delimiter(,)), @param0[0]))"
-elif target_ds == 'list':
-    synth_output = "list(@param0[2], concat(concat(concat(@param0[1], get_delimiter(,)), concat(@param0[0], get_delimiter(,))), @param0[3]))"
-else:
-    synth_output = "set(@param0[2], concat(concat(concat(@param0[1], get_delimiter(,)), concat(@param0[0], get_delimiter(,))), @param0[3]))"
-
-print(f"Solution found by Trinity: {synth_output}")
+    prog = synthesizer.synthesize()
+    if prog is not None:
+        logger.info('Solution found: {}'.format(prog))
+    else:
+        logger.info('Solution not found!')
+    return prog
+"""
 
 
 # ––––––––––––––––––– Application Logic Synthesis ––––––––––––––––––––
 print('Generating data structure-specific application code...')
 
-# Translate Rosette Trinity output to python
-synth_output = synth_output.replace('@param0', 'line')
+# Create .tyrell file for this example
+parse_file_generator(input_ex)
 
 # Code to import raw data from .txt file and format it into a 2D list
 # Appended to synthesized code for all data structures
@@ -173,12 +256,30 @@ data_structs = {{}}\n"""
 
 # Select data structure-specific adaptation logic
 if target_ds == 'dict':
-    # synthesizer output format: dict(name, key, value)
-    dict_args = synth_output[5:-1]
-    name, key, val = parse_synth_dict(dict_args)
-    name = parse_concat(parse_delim(name))
-    key = parse_concat(parse_delim(key))
-    val = parse_concat(parse_delim(val))
+    name, key, val = parse_out_dict(output_ex)
+    if name not in input_ex:
+        print("Synthesizing code to generate dictionary name field...")
+        depth, loc = det_depth_loc(name, input_ex)
+        name = synth_str(input_ex, name, depth, loc)
+        name = parse_concat(parse_delim(name, len(input_ex)))
+    else:
+        name = 'line[' + str(input_ex.index(name)) + ']'
+    if key not in input_ex:
+        print("Synthesizing code to generate dictionary key field...")
+        depth, loc = det_depth_loc(key, input_ex)
+        key = synth_str(input_ex, key, depth, loc)
+        key = parse_concat(parse_delim(key, len(input_ex)))
+    else:
+        key = 'line[' + str(input_ex.index(key)) + ']'
+    if val not in input_ex:
+        print("Synthesizing code to generate dictionary value field...")
+        #depth, loc = det_depth_loc(val, input_ex)
+        #val = synth_str(input_ex, val, depth, loc)
+        val = "concat(concat(@param1, delim(,)), @param0)"
+        val = parse_concat(parse_delim(val, len(input_ex)))
+    else:
+        val = 'line[' + str(input_ex.index(val)) + ']'
+
     if_str = f"data_structs[{name}][{key}] = {val}"
     else_str = f"data_structs[{name}] = {{ {key}:{val} }}"
 
@@ -197,11 +298,22 @@ for i in data_structs.keys():
     synth_prog += dict_out
 
 elif target_ds == 'list':
-    # synthesizer output format: list(name, entry)
-    list_args = synth_output[5:-1]
-    name, val = parse_synth_l_s(list_args)
-    name = parse_concat(parse_delim(name))
-    val = parse_concat(parse_delim(val))
+    name, val = parse_out_list(output_ex)
+    if name not in input_ex:
+        print("Synthesizing code to generate list name field...")
+        depth, loc = det_depth_loc(name, input_ex)
+        name = synth_str(input_ex, name, depth, loc)
+        name = parse_concat(parse_delim(name, len(input_ex)))
+    else:
+        name = 'line[' + str(input_ex.index(name)) + ']'
+    if val not in input_ex:
+        print("Synthesizing code to generate list value field...")
+        depth, loc = det_depth_loc(val, input_ex)
+        val = synth_str(input_ex, val, depth, loc)
+        val = parse_concat(parse_delim(val, len(input_ex)))
+    else:
+        val = 'line[' + str(input_ex.index(val)) + ']'
+
     if_str = f"data_structs[{name}].append({val})"
     else_str = f"data_structs[{name}] = [{val}]"
 
@@ -220,11 +332,22 @@ for i in data_structs.keys():
     synth_prog += list_out
 
 elif target_ds == 'set':
-    # synthesizer output format: set(name, entry)
-    set_args = synth_output[4:-1]
-    name, val = parse_synth_l_s(set_args)
-    name = parse_concat(parse_delim(name))
-    val = parse_concat(parse_delim(val))
+    name, val = parse_out_set(output_ex)
+    if name not in input_ex:
+        print("Synthesizing code to generate set name field...")
+        depth, loc = det_depth_loc(name, input_ex)
+        name = synth_str(input_ex, name, depth, loc)
+        name = parse_concat(parse_delim(name, len(input_ex)))
+    else:
+        name = 'line[' + str(input_ex.index(name)) + ']'
+    if val not in input_ex:
+        print("Synthesizing code to generate set value field...")
+        depth, loc = det_depth_loc(val, input_ex)
+        val = synth_str(input_ex, val, depth, loc)
+        val = parse_concat(parse_delim(val, len(input_ex)))
+    else:
+        val = 'line[' + str(input_ex.index(val)) + ']'
+
     if_str = f"data_structs[{name}].add({val})"
     else_str = f"data_structs[{name}] = {{ {val} }}"
 
