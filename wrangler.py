@@ -190,8 +190,15 @@ func concat: Str -> Str, Str;
 
 def det_depth_loc(cat_str, input_ex):
     ''' Accepts target string and calcuates synthesizer depth and loc '''
-    depth = None
-    loc = None
+    pos_delim_strs = [",", " "]
+    lit_count = len(input_ex)
+    delim_count = 0
+    for i in pos_delim_strs:
+        delim_count += cat_str.count(i)
+    loc = (lit_count + 2*delim_count - 1)
+    depth = ((lit_count + delim_count + 1) // 2) + 1
+    if delim_count > 0:
+        depth += 1
     return depth, loc
 
 def translate_indicies(synth_str, input_ex, input_sub):
@@ -238,7 +245,7 @@ def synth_str(in_ex, out_ex, search_depth, search_loc):
         logger.info('Solution found: {}'.format(prog))
     else:
         logger.info('Solution not found!')
-    return prog
+    return str(prog)
 
 
 # ––––––––––––––––––– Application Logic Synthesis ––––––––––––––––––––
@@ -264,6 +271,7 @@ if target_ds == 'dict':
         for i in input_ex:
             if i in name:
                 input_sub.append(i)
+        print(f"Input Example: {input_sub}\tOutput Example: '{name}'")
         # Create .tyrell file for this example
         parse_file_generator(input_sub)
         depth, loc = det_depth_loc(name, input_sub)
@@ -279,6 +287,7 @@ if target_ds == 'dict':
         for i in input_ex:
             if i in key:
                 input_sub.append(i)
+        print(f"Input Example: {input_sub}\tOutput Example: '{key}'")
         # Create .tyrell file for this example
         parse_file_generator(input_sub)
         depth, loc = det_depth_loc(key, input_sub)
@@ -293,13 +302,11 @@ if target_ds == 'dict':
         for i in input_ex:
             if i in val:
                 input_sub.append(i)
-        print(f"Input Example: {input_sub}\tOutput Example: {val}")
+        print(f"Input Example: {input_sub}\tOutput Example: '{val}'")
         # Create .tyrell file for this example
         parse_file_generator(input_sub)
-        #depth, loc = det_depth_loc(val, input_sub)
-        depth, loc = (4, 3)
-        val = str(synth_str(input_sub, val, depth, loc))
-        #val = "concat(concat(@param1, delim(,)), @param0)"
+        depth, loc = det_depth_loc(val, input_sub)
+        val = synth_str(input_sub, val, depth, loc)
         val = translate_indicies(val, input_ex, input_sub)
         val = parse_concat(parse_delim(val))
     else:
@@ -330,6 +337,7 @@ elif target_ds == 'list':
         for i in input_ex:
             if i in name:
                 input_sub.append(i)
+        print(f"Input Example: {input_sub}\tOutput Example: '{name}'")
         # Create .tyrell file for this example
         parse_file_generator(input_sub)
         depth, loc = det_depth_loc(name, input_sub)
@@ -345,6 +353,7 @@ elif target_ds == 'list':
         for i in input_ex:
             if i in val:
                 input_sub.append(i)
+        print(f"Input Example: {input_sub}\tOutput Example: '{val}'")
         # Create .tyrell file for this example
         parse_file_generator(input_sub)
         depth, loc = det_depth_loc(val, input_sub)
@@ -379,6 +388,7 @@ elif target_ds == 'set':
         for i in input_ex:
             if i in name:
                 input_sub.append(i)
+        print(f"Input Example: {input_sub}\tOutput Example: '{name}'")
         # Create .tyrell file for this example
         parse_file_generator(input_sub)
         depth, loc = det_depth_loc(name, input_sub)
@@ -394,6 +404,7 @@ elif target_ds == 'set':
         for i in input_ex:
             if i in val:
                 input_sub.append(i)
+        print(f"Input Example: {input_sub}\tOutput Example: '{val}'")
         # Create .tyrell file for this example
         parse_file_generator(input_sub)
         depth, loc = det_depth_loc(val, input_sub)
